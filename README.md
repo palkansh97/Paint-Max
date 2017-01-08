@@ -1,2 +1,2 @@
-# csi-event
+# csi winter project
 basic paint software
