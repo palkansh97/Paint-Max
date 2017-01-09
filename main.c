@@ -153,7 +153,7 @@ void clean()
 }
 int main()
 {
-        running = init("Paint" , 0 , 0  , 1366 , 768 , SDL_WINDOW_RESIZABLE);
+        running = init("Paint" , 0 , 0  , 1366 , 768 , 0);
         while(running)
         {
                 handleEvent() ;
