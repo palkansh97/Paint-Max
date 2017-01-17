@@ -1,164 +1,263 @@
-#include"SDL2/SDL.h"
-#include"SDL2/SDL_image.h"
 #include<stdio.h>
-#include<string.h>
-SDL_Window * window ;
-SDL_Renderer *render ;
-SDL_Rect sourceRectangle ;
-SDL_Rect destinationRectangle ;
-int running ;
-enum  {
-        UP  , DOWN
-} ;
-typedef struct color
-{
-        SDL_Surface * imgButtonUp_surface ;
-        SDL_Surface * imgButtonDown_surface ;
-        SDL_Texture * imgButtonDown_texture ;
-        SDL_Texture * imgButtonUp_texture ;
-        int state ;
-}Color ;
-Color colors[10] ;
-void handleColors(SDL_Event * event)
-{
-        int i ;
-        for(i = 0 ; i < 6 ; i++)
-        {
-//                if(event->motion.y < (i+1) * 48 && event->motion.y > i*48 && event->motion.x < 48)
-                if(i%2==0)
-                {
-                        if(event->motion.y < (i+2)/2 * 48 && event->motion.y > (i/2) * 48 && event->motion.x < 48)
-                                colors[i].state = DOWN ;
-                        else
-                                colors[i].state = UP ;
-                }
-                if(i%2 == 1)
-                {
-                        if(event->motion.x > 48 && event->motion.x < 96 && event->motion.y < (i+1)/2 *48 && event->motion.y > (i/2)*48)
-                                colors[i].state = DOWN ;
-                        else
-                                colors[i].state = UP ;
-                }
-        }
-}
-int init(const char* title , int xpos , int ypos , int width , int height , int flags)
-{
-        if(SDL_Init(SDL_INIT_EVERYTHING) >= 0)
-        {
-//                printf("Initilization successful\n") ;
-                window = SDL_CreateWindow(title, xpos , ypos , width , height ,flags);
-                if(window!=0)
-                {
-//                        printf("window created successfully\n") ;
-                        render = SDL_CreateRenderer(window , -1 , 0) ;
-                        if(render!=0)
-                        {
-//                                printf("renderer creation successful\n") ;
-                                SDL_SetRenderDrawColor(render , 255 , 255 ,255 ,255 ) ;
-                        }
-                        else
-                        {
-//                                printf("render creation fails\n" );
-                                return 0;
-                        }
-                }
-                else
-                {
-//                        printf("window creation fails\n") ;
-                        return 0;
-                }
-        }
-        else
-        {
-//                printf("Initilization fails\n") ;
-                return 0 ;
-        }
-//        printf("Initlization Successful\n") ;
-        colors[0].imgButtonDown_surface = IMG_Load("res/btn_down1.png") ;
-        colors[1].imgButtonDown_surface = IMG_Load("res/btn_down2.png") ;
-        colors[2].imgButtonDown_surface = IMG_Load("res/btn_down3.png") ;
-        colors[3].imgButtonDown_surface = IMG_Load("res/btn_down4.png") ;
-        colors[4].imgButtonDown_surface = IMG_Load("res/btn_down5.png") ;
-        colors[5].imgButtonDown_surface = IMG_Load("res/btn_down6.png") ;
+#include<stdlib.h>
+#include <SDL2/SDL.h>
+#include<SDL2/SDL_image.h>
+int screenwidth = 1366;
+int screenheight = 768;
+Uint32* pixels;
+int leftMouseButtonDown = 0;
+int quit = 0;
+SDL_Window* window;
+SDL_Renderer* renderer;
+SDL_Texture* background;
+SDL_Texture* Canvas;
 
-        colors[0].imgButtonUp_surface = IMG_Load("res/btn_off1.png") ;
-        colors[1].imgButtonUp_surface = IMG_Load("res/btn_off2.png") ;
-        colors[2].imgButtonUp_surface = IMG_Load("res/btn_off3.png") ;
-        colors[3].imgButtonUp_surface = IMG_Load("res/btn_off4.png") ;
-        colors[4].imgButtonUp_surface = IMG_Load("res/btn_off5.png") ;
-        colors[5].imgButtonUp_surface = IMG_Load("res/btn_off6.png") ;
-        int i ;
-        for ( i = 0 ; i < 6 ; i++)
-        {
-                colors[i].imgButtonDown_texture= SDL_CreateTextureFromSurface(render ,colors[i].imgButtonDown_surface) ;
-                SDL_FreeSurface(colors[i].imgButtonDown_surface) ;
-                SDL_QueryTexture( colors[i].imgButtonDown_texture, NULL , NULL , &sourceRectangle.w , &sourceRectangle.h) ;
-                colors[i].imgButtonUp_texture = SDL_CreateTextureFromSurface(render , colors[i].imgButtonUp_surface);
-                SDL_FreeSurface(colors[i].imgButtonUp_surface);
-                SDL_QueryTexture(colors[i].imgButtonUp_texture , NULL , NULL , &sourceRectangle.w , &sourceRectangle.h) ;
-
-        }
-         return 1 ;
-}
-void renderer()
-{
-
-//        SDL_RenderCopy(m_render , m_texture , &m_soureceRectangle ,&destinationRectangle ) ;
-        SDL_RenderClear(render) ;
-        int j = 0 , i ;
-        for ( i = 0 ; i <6 ; i++)
-        {
-                SDL_Rect dest_off = sourceRectangle ;
-                dest_off.x = (i % 2) * 48 ;
-                dest_off.y = j * 48 ;
-//                dest_off.x = 0 ;
-//                dest_off.y = i* 48 ;
-                if(colors[i].state == UP)
-                        SDL_RenderCopyEx(render ,colors[i].imgButtonUp_texture , &sourceRectangle , &dest_off, 0 , 0 , SDL_FLIP_NONE) ;
-                else
-                        SDL_RenderCopyEx(render ,colors[i].imgButtonDown_texture , &sourceRectangle , &dest_off, 0 , 0 , SDL_FLIP_NONE) ;
-                if(i%2)
-                        j++ ;
-        }
-         SDL_RenderPresent(render) ;
-}
+SDL_Texture* colors[10];
+SDL_Texture* tools[10];
+int states[10] ;
+SDL_Texture *selector ;
+SDL_Texture* WhiteColor;
+SDL_Texture* isSelected;
 void handleEvent()
 {
-        SDL_Event  event ;
-        if(SDL_PollEvent(&event))
+        SDL_Event event;
+        SDL_PollEvent(&event);
+
+        switch (event.type)
         {
-                switch(event.type)
-                {
-                        case SDL_QUIT :
-                                running = 0 ;
-                                break;
-                        case SDL_MOUSEBUTTONDOWN :
+                case SDL_QUIT:
+                quit = 1;
+                break;
+                case SDL_MOUSEBUTTONUP:
+                        if (event.button.button == SDL_BUTTON_LEFT)
+                                leftMouseButtonDown = 0;
+                        break;
+                case SDL_MOUSEBUTTONDOWN:
+                        if (event.button.button == SDL_BUTTON_LEFT)
+                                leftMouseButtonDown = 1;
+                case SDL_MOUSEMOTION:
+                        if (leftMouseButtonDown)
                         {
-                                if ( event.button.button == SDL_BUTTON_LEFT)
-                                        handleColors(&event) ;
+                                int mouseX = event.motion.x-110;
+                                int mouseY = event.motion.y;
+                                pixels[mouseY * (screenwidth-110) + mouseX] = 0;
                         }
-                                break ;
-                        default :
-                                break ;
-                 }
-         }
-}
-void clean()
-{
-//        printf("cleaning done\n");
-//        SDL_Delay(5000) ;
-        SDL_DestroyRenderer(render) ;
-        SDL_DestroyWindow(window) ;
-        SDL_Quit() ;
-}
-int main()
-{
-        running = init("Paint" , 0 , 0  , 1366 , 768 , 0);
-        while(running)
-        {
-                handleEvent() ;
-                renderer() ;
+                        break;
         }
-        clean();
-        return 0 ;
+}
+int init()
+{
+        SDL_Init(SDL_INIT_VIDEO);
+        int canvasWidth = screenwidth-110;
+        int canvasHeight = screenheight-100;
+        SDL_Window * window = SDL_CreateWindow("SDL2 Pixel Drawing",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenwidth, screenheight, SDL_WINDOW_FULLSCREEN);
+        if(window == NULL)
+                return 0;
+
+        renderer = SDL_CreateRenderer(window, -1, 0);
+        if(renderer == NULL)
+                return 0;
+        Canvas = SDL_CreateTexture(renderer,
+                SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, canvasWidth, canvasHeight);
+
+        pixels = (Uint32*)malloc( sizeof(Uint32)*canvasWidth * canvasHeight);
+        memset(pixels, 255, canvasWidth*canvasHeight * sizeof(Uint32));
+        int i ;
+        for ( i = 0 ;i <10 ; i++)
+                states[i] = 1;
+        SDL_Surface *s = IMG_Load("./res/selector.png") ;
+        selector = SDL_CreateTextureFromSurface(renderer , s) ;
+        SDL_FreeSurface(s) ;
+        return 1;
+
+}
+void renderColors()
+{
+        SDL_Rect s_color , d_color ;
+        SDL_QueryTexture(colors[7] , 0 , 0 , &s_color.w , &s_color.h);
+        SDL_Rect s_white , d_white ;
+        SDL_QueryTexture(WhiteColor , 0 , 0 , &s_white.w , &s_white.h ) ;
+        SDL_Rect s_sel , d_sel ;
+        SDL_QueryTexture(selector , 0 , 0 , &s_sel.w , &s_sel.h) ;
+        d_sel.w = s_sel.w ;
+        d_sel.h = s_sel.h ;
+        s_sel.x = s_sel.y = 0 ;
+        d_sel.y  = 750 ;
+        int i ;
+        for ( int i = 0 ; i <3 ; i++)
+        {
+                d_white.w = 70;
+                d_white.h = 70;
+                s_white.x = s_white.y = 0;
+                d_white.x = 140 + i*100;
+                d_white.y = 675;
+                SDL_RenderCopy(renderer, WhiteColor, &s_white, &d_white);
+                    if(states[i] == 1)
+                {
+                        d_sel.x = 143+i*100 ;
+                        SDL_RenderCopy(renderer , selector , &s_sel , &d_sel) ;
+                }
+        }
+        for ( int i = 0 ; i < 3 ; i++)
+        {
+                d_color.w = 60;
+                d_color.h = 60;
+                s_color.x = s_color.y = 0;
+                d_color.x = 145 + i*100;
+                d_color.y = 680;
+                SDL_RenderCopy(renderer , colors[i] , &s_color , &d_color);
+        }
+        for ( int i = 3 ; i < 10  ; i++)
+        {
+                if(states[i] == 1)
+                {
+                        d_sel.x = 243+i*100 ;
+                        SDL_RenderCopy(renderer , selector , &s_sel , &d_sel) ;
+                }
+                d_white.w = 70;
+                d_white.h = 70;
+                s_white.x = s_white.y = 0;
+                d_white.x = 240 + i*100;
+                d_white.y = 675;
+                SDL_RenderCopy(renderer, WhiteColor, &s_white, &d_white);
+        }
+        for ( int i = 3 ; i < 10 ; i++)
+        {
+                d_color.w = 60;
+                d_color.h = 60;
+                s_color.x = s_color.y = 0;
+                d_color.x = 245 + i*100;
+                d_color.y = 680;
+                SDL_RenderCopy(renderer , colors[i] , &s_color , &d_color);
+        }
+}
+void renderTools()
+{
+        SDL_Rect s , d ;
+        SDL_QueryTexture(tools[0] , 0 , 0 , &s.w , &s.h) ;
+        int i ;
+        for ( i = 0 ; i < 5 ; i++)
+        {
+                s.x = s.y = 0 ;
+                d.x = 10 ;
+                d.y = 30 + i*100 ;
+                d.h = s.h ;
+                d.w = s.w ;
+                SDL_RenderCopy(renderer , tools[i] , &s , &d) ;
+        }
+}
+void render()
+{
+        SDL_UpdateTexture(Canvas, NULL, pixels, (screenwidth-110) * sizeof(Uint32));
+        SDL_RenderClear(renderer);
+        SDL_RenderCopy(renderer , background , 0 , 0 ) ;
+        SDL_Rect s_canvas;
+        SDL_Rect d_canvas;
+        SDL_QueryTexture(Canvas , 0 , 0 , &s_canvas.w , &s_canvas.h);
+        s_canvas.x = s_canvas.y = 0;
+        d_canvas.x = 110;
+        d_canvas.y = 0;
+        d_canvas.w = s_canvas.w;
+        d_canvas.h = s_canvas.h;
+        renderColors() ;
+        renderTools() ;
+        SDL_RenderCopy(renderer, Canvas, &s_canvas, &d_canvas);
+        SDL_RenderPresent(renderer);
+
+}
+void initBackground()
+{
+        SDL_Surface* back = IMG_Load("./res/grids.png");
+        background = SDL_CreateTextureFromSurface(renderer , back);
+        SDL_FreeSurface(back);
+}
+void initColors()
+{
+        SDL_Surface* base = IMG_Load("./res/white.png");
+        WhiteColor = SDL_CreateTextureFromSurface(renderer , base);
+        SDL_FreeSurface(base);
+        SDL_Surface* temp;
+        temp = IMG_Load("./res/black.png");
+        colors[0] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("./res/white1.png");
+        colors[1] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("./res/grey.png");
+        colors[2] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("./res/red.png");
+        colors[3] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("./res/orange.png");
+        colors[4] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("./res/yellow.png");
+        colors[5] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("./res/pink.png");
+        colors[6] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("./res/cyan.png");
+        colors[7] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("./res/blue.png");
+        colors[8] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+
+        temp = IMG_Load("./res/green.png");
+        colors[9] = SDL_CreateTextureFromSurface(renderer , temp);
+        SDL_FreeSurface(temp);
+}
+void initTools()
+{
+        SDL_Surface *tool_surface = IMG_Load("./res/bucket2.png") ;
+        tools[0] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        SDL_FreeSurface(tool_surface) ;
+
+        tool_surface = IMG_Load("./res/brush2.png") ;
+        tools[1] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        SDL_FreeSurface(tool_surface) ;
+
+        tool_surface = IMG_Load("./res/brush1.png") ;
+        tools[2] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        SDL_FreeSurface(tool_surface) ;
+
+        tool_surface = IMG_Load("./res/eraser.png") ;
+        tools[3] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        SDL_FreeSurface(tool_surface) ;
+
+        tool_surface = IMG_Load("./res/penciltool.png") ;
+        tools[4] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        SDL_FreeSurface(tool_surface) ;
+}
+int main(int argc, char ** argv)
+{
+        int success = init();
+        initBackground();
+        initColors();
+        initTools() ;
+
+        while (!quit && success)
+        {
+                handleEvent();
+                render();
+        }
+
+        free(pixels);
+        SDL_DestroyTexture(Canvas);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+
+        return 0;
 }
