@@ -77,7 +77,7 @@ int init()
 
         screenwidth = screen.w ;
         screenheight = screen.h ;
-
+//        printf("%d\n%d\n",screenheight,screenwidth);
         int canvasWidth = screenwidth-110;
         int canvasHeight = screenheight-100;
 
@@ -472,7 +472,6 @@ void getPixel(int x , int y , int*r , int*g , int* b)
 {
         Uint32 color = pixels[y*(screenwidth -110) + x];
         Uint8 * p = (Uint8*)(&color);
-
         *r = p[2];
         *g=  p[1];
         *b = p[0];
@@ -498,6 +497,9 @@ int colors_close(int r1 , int g1 , int b1 , int r2 , int g2 , int b2)
 }
 void do_flood_fill(int x, int y,int r1 , int g1 , int b1, int r2,int g2 , int b2)
 {
+//        static int count = 0 ;
+//        if(count > 350 )
+//                return ;
         int fillL, fillR, i, in_line;
         if (colors_close(r1,g1,b1, r2,g2,b2))
         return;
@@ -510,11 +512,12 @@ void do_flood_fill(int x, int y,int r1 , int g1 , int b1, int r2,int g2 , int b2
 
         while (in_line)
         {
-                putPixel(0 , fillL, y, r1,g1,b1);
-                fillL--;
-                int r , g , b;
-                getPixel(fillL , y , &r ,&g , &b);
-                in_line = (fillL < 0) ? 0 : colors_close(r,g,b,r2,g2,b2);
+        putPixel(0 , fillL, y, r1,g1,b1);
+        fillL--;
+        int r , g , b;
+        getPixel(fillL , y , &r ,&g , &b);
+        in_line =
+        (fillL < 0) ? 0 : colors_close(r,g,b,r2,g2,b2);
         }
 
         fillL++;
@@ -524,33 +527,33 @@ void do_flood_fill(int x, int y,int r1 , int g1 , int b1, int r2,int g2 , int b2
         in_line = 1;
         while (in_line)
         {
-                putPixel(0,fillR, y, r1,g1,b1);
-                fillR++;
-                int r , g , b;
-                getPixel(fillR , y , &r ,&g , &b);
-                in_line = (fillR >= screenwidth-110) ? 0 : colors_close(r,g,b,r2,g2,b2);
+        putPixel(0,fillR, y, r1,g1,b1);
+        fillR++;
+        int r , g , b;
+        getPixel(fillR , y , &r ,&g , &b);
+        in_line = (fillR >= screenwidth-110) ? 0 : colors_close(r,g,b,r2,g2,b2);
         }
         fillR--;
 
         for (i = fillL; i <= fillR; i++)
         {
-                int r , g , b;
+        int r , g , b;
+        if(y>0)
+        getPixel(i , y-1 , &r ,&g , &b);
 
-                if(y>0)
-                        getPixel(i , y-1 , &r ,&g , &b);
-
-                if (y > 0 && colors_close(r,g,b,r2,g2,b2))
-                {
-                        do_flood_fill(i, y - 1, r1 , g1 , b1 , r2,g2,b2);
-                }
-                if(y < screenheight-100 )
-                        getPixel(i , y+1 , &r ,&g , &b);
-
-                if (y < screenheight-100 && colors_close(r,g,b,r2,g2,b2))
-                {
-                        do_flood_fill(i, y + 1, r1 , g1 , b1 , r2,g2,b2);
-                }
+        if (y > 0 && colors_close(r,g,b,r2,g2,b2))
+        {
+        do_flood_fill(i, y - 1, r1 , g1 , b1 , r2,g2,b2);
         }
+        if(y < screenheight-100 -1)
+        getPixel(i , y+1 , &r ,&g , &b);
+
+        if (y < screenheight-100 && colors_close(r,g,b,r2,g2,b2))
+        {
+        do_flood_fill(i, y + 1, r1 , g1 , b1 , r2,g2,b2);
+        }
+        }
+//        count++ ;
 }
 void clearCanvas()
 {
@@ -687,12 +690,12 @@ void handleEvent()
 
         switch (event.type)
         {
-//                case SDL_KEYDOWN:
-//                {
-//                        if(event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
-//                                quit = 1;
-//                }
-//                break ;
+                case SDL_KEYDOWN:
+                {
+                        if(event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+                                quit = 1;
+                }
+                break ;
                 case SDL_QUIT :
                         quit = 1 ;
                 break ;
