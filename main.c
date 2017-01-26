@@ -5,20 +5,25 @@
 #include<SDL2/SDL2_gfxPrimitives.h>
 #include<libpng12/png.h>
 #include<string.h>
+#define TOTAL_TOOLS 10
+#define TOTAL_COLORS 10
+#define TOTAL_PRIMARY_COLORS 3
 int screenwidth ;
-int screenheight;
+int screenheight ;
+int offset_width = 110 ;
+int offset_height = 100 ;
 Uint32* pixels;
 int leftMouseButtonDown = 0;
 int quit = 0;
 SDL_Window* window;
 SDL_Renderer* renderer;
-SDL_Texture* background;
+SDL_Texture* texture_background;
 SDL_Texture* Canvas;
-SDL_Texture* colors[10];
-SDL_Texture* tools[10];
+SDL_Texture* texture_colors[TOTAL_COLORS];
+SDL_Texture* texture_tools[TOTAL_TOOLS];
 SDL_Texture *canvas_tools[5] ;
-int color_state[10] ;
-int tool_state[10] ;
+int color_state[TOTAL_COLORS] ;
+int tool_state[TOTAL_TOOLS] ;
 SDL_Texture *selector ;
 SDL_Texture* WhiteColor;
 SDL_Texture* isSelected;
@@ -33,15 +38,16 @@ typedef struct colorElement
         int g ;
         int b ;
 }ColorElement ;
-ColorElement avail_Colors[10] ;
-enum {
-        TOOL_PENCIL ,
-        TOOL_BRUSH ,
-        TOOL_BRUSH_THICK ,
-        TOOL_ERASER ,
-        TOOL_BUCKET ,
-        TOOL_PNG ,
-        TOOL_CLEAR
+ColorElement avail_Colors[TOTAL_COLORS] ;
+enum
+{
+        TOOL_PENCIL , //# 0
+        TOOL_BRUSH , //# 1
+        TOOL_BRUSH_THICK , //# 2
+        TOOL_ERASER , //# 3
+        TOOL_BUCKET , //# 4
+        TOOL_PNG , //# 5
+        TOOL_CLEAR //# 6
 } ;
 // Funtions Prototypes
 int init() ;  // Initialization of SDL
@@ -63,6 +69,10 @@ void do_flood_fill(int x , int y , int r1 , int g1 , int b1 , int r2 , int g2 , 
 void clearCanvas() ; // Clear Canvas or Make a new window
 void writeImage() ; // Save image in PNG formate
 void renderTooI_icons() ; // Movement of tool icons with mouse on Canvas
+void renderBackgroundImage() ;
+void renderCanvas() ;
+void putEraserRectangleOnCanvas() ;
+void putToolIconsOnCanvas() ;
 void handleEvent() ; // Handle Mouse And Other Events
 void render() ; // Display Everthing on screen
 
@@ -74,23 +84,24 @@ int init()
         // Get Screen Resolution
         for( int i = 0 ; i < SDL_GetNumVideoDisplays() ; i++ )
                 int z = SDL_GetCurrentDisplayMode( i , &screen) ;
+        int width = screen.w ;
 
         screenwidth = screen.w ;
         screenheight = screen.h ;
 //        printf("%d\n%d\n",screenheight,screenwidth);
-        int canvasWidth = screenwidth-110;
-        int canvasHeight = screenheight-100;
+        int canvasWidth = screenwidth - offset_width ;
+        int canvasHeight = screenheight - offset_height ;
 
         //Checking Screen Resolution for HD AND FULL HD
-        if(screenheight == 768 && screenwidth == 1366)
+        if(width == screenwidth)
         {
                window = SDL_CreateWindow("Paint",
                 SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenwidth, screenheight, SDL_WINDOW_FULLSCREEN);
         }
-        else if(screenwidth == 1920 && screenheight == 1080)
+        else
         {
                 window = SDL_CreateWindow("Paint Max",
-                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenwidth, screenheight, SDL_WINDOW_MAXIMIZED);
+                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenwidth, screenheight, SDL_WINDOW_FULLSCREEN);
         }
         //Checking Window is NULL or NOT
         if(window == NULL)
@@ -101,16 +112,19 @@ int init()
                 return 0;
         // Make a texture of canvaswidth and canvasheight
         Canvas = SDL_CreateTexture(renderer,
-                        SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, canvasWidth ,canvasHeight);
+                        SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, canvasWidth ,canvasHeight);
         // Allocating memeory to pixels
         pixels = (Uint32*)malloc( sizeof(Uint32)*canvasWidth * canvasHeight);
         // Set Pixels in Memory With White Background
         memset(pixels, 255, canvasWidth*canvasHeight * sizeof(Uint32));
         // Make ToolState and ColorState to NOT SELECTED
         int i ;
-        for ( i = 0 ;i <10 ; i++)
+        for ( i = 0 ;i <TOTAL_COLORS ; i++)
         {
                 color_state[i] = 0;
+        }
+        for( i = 0 ; i < TOTAL_TOOLS ; i++)
+        {
                 tool_state[i] = 0 ;
         }
         // Load image "selector.png" to surface
@@ -145,8 +159,12 @@ int init()
 void initBackground()
 {
         /* Load image and create a texture from that image */
-        SDL_Surface* back = IMG_Load("./res/grids.png");
-        background = SDL_CreateTextureFromSurface(renderer , back);
+        SDL_Surface* back;
+        if(screenwidth == 768)
+               back = IMG_Load("./res/grids.png");
+        else
+               back = IMG_Load("./res/grids1080.png");
+        texture_background = SDL_CreateTextureFromSurface(renderer , back);
         SDL_FreeSurface(back);
 }
 void initColors()
@@ -158,43 +176,43 @@ void initColors()
 
         SDL_Surface* temp;
         temp = IMG_Load("./res/black.png");
-        colors[0] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[0] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 
         temp = IMG_Load("./res/white1.png");
-        colors[1] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[1] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 
         temp = IMG_Load("./res/grey.png");
-        colors[2] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[2] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 
         temp = IMG_Load("./res/red.png");
-        colors[3] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[3] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 
         temp = IMG_Load("./res/orange.png");
-        colors[4] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[4] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 
         temp = IMG_Load("./res/yellow.png");
-        colors[5] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[5] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 
         temp = IMG_Load("./res/pink.png");
-        colors[6] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[6] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 
         temp = IMG_Load("./res/cyan.png");
-        colors[7] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[7] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 
         temp = IMG_Load("./res/blue.png");
-        colors[8] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[8] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 
         temp = IMG_Load("./res/green.png");
-        colors[9] = SDL_CreateTextureFromSurface(renderer , temp);
+        texture_colors[9] = SDL_CreateTextureFromSurface(renderer , temp);
         SDL_FreeSurface(temp);
 }
 void initTools()
@@ -202,63 +220,68 @@ void initTools()
         /* Load image and create a texture from that image */
         SDL_Surface *tool_surface  ;
         tool_surface = IMG_Load("./res/penciltool.png") ;
-        tools[0] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        texture_tools[0] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
         SDL_FreeSurface(tool_surface) ;
 
         tool_surface = IMG_Load("./res/brush1.png") ;
-        tools[1] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        texture_tools[1] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
         SDL_FreeSurface(tool_surface) ;
 
         tool_surface = IMG_Load("./res/brush2.png") ;
-        tools[2] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        texture_tools[2] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
         SDL_FreeSurface(tool_surface) ;
 
         tool_surface = IMG_Load("./res/eraser.png") ;
-        tools[3] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        texture_tools[3] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
         SDL_FreeSurface(tool_surface) ;
 
         tool_surface = IMG_Load("./res/bucket2.png") ;
-        tools[4] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        texture_tools[4] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
         SDL_FreeSurface(tool_surface) ;
 
         tool_surface = IMG_Load("./res/exportPdf.png") ;
-        tools[5] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        texture_tools[5] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
         SDL_FreeSurface(tool_surface) ;
 
         tool_surface = IMG_Load("./res/clear.png") ;
-        tools[6] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
+        texture_tools[6] = SDL_CreateTextureFromSurface(renderer , tool_surface) ;
         SDL_FreeSurface(tool_surface) ;
 
 }
 void handleColors(SDL_Event *event)
 {
-        int i  , x = 140 , y = 675 ;
+        int i  , xPositionFirstColorButton = 140 , y = screenheight - offset_height ;
+        int offsetBetweenColors = 30 ;
+        int widthColorButton = 70 ;
+        int difference_colorButtons  = 100 ;
         /* Handle Mouse Motion with different  xand y  poistions on screen i.e. handle that which color is SELECTED or NOT SELECTED */
-        for ( i = 0 ; i <3 ; i++)
+        for ( i = 0 ; i < TOTAL_PRIMARY_COLORS ; i++)
         {
 
-                if(event->motion.x > x + i*100 && event->motion.x <  x + (i+1)*70+i*30  && event->motion.y > 675 && event->motion.y < 768)
+                if(event->motion.x > xPositionFirstColorButton + i*difference_colorButtons && event->motion.x <  xPositionFirstColorButton + (i+1)*widthColorButton+i*offsetBetweenColors
+                && event->motion.y > y +7 && event->motion.y < screenheight )
                 {
                         color_state[i] = 1 ;
                         int j ;
-                        for( j = 0 ; j < 3 ; j++)
+                        for( j = 0 ; j < TOTAL_COLORS ; j++)
                                 if(j!=i)
                                         color_state[j] = 0 ;
                         currentColor = i ;
                 }
         }
-        int j  ,  x1 = 240 ;
-        for ( j = 3 ; j < 10 ; j++)
+        int   xPositionFourthColor = 240 ;
+        for ( i = TOTAL_PRIMARY_COLORS ; i < TOTAL_COLORS ; i++)
         {
 
-                if(event->motion.x > x1 + j*100 && event->motion.x < x1 + (j+1)*75 + j*25 && event->motion.y > 675 && event->motion.y < 768)
+                if(event->motion.x > xPositionFourthColor + i*difference_colorButtons && event->motion.x < xPositionFourthColor + (i+1)*widthColorButton + i*offsetBetweenColors
+                && event->motion.y >screenheight - offset_height +7 && event->motion.y < screenheight)
                 {
-                        color_state[j] = 1 ;
-                         int k ;
-                        for( k = 0 ; k < 10 ; k++)
-                                if(k!=j)
-                                        color_state[k] = 0 ;
-                        currentColor = j ;
+                        color_state[i] = 1 ;
+                         int j ;
+                        for( j = 0 ; j < TOTAL_COLORS ; j++)
+                                if(j!=i)
+                                        color_state[j] = 0 ;
+                        currentColor = i ;
                 }
 
         }
@@ -283,11 +306,43 @@ void handleTools(SDL_Event *event)
 
         }
 }
-
+/*void handleToolsWithKeyboard(SDL_Event * event)
+{
+                if(event->key.keysym.scancode == SDL_SCANCODE_P)
+                {
+                        tool_state[0] = 1 ;
+                        currentTool == 0 ;
+                }
+                else if(event->key.keysym.scancode == SDL_SCANCODE_B)
+                {
+                        tool_state[1] = 1 ;
+                        currentTool == 1 ;
+                }
+                else if(event->key.keysym.scancode == SDL_SCANCODE_T)
+                {
+                        tool_state[2] = 1 ;
+                        currentTool == 2  ;
+                }
+                else if(event->key.keysym.scancode == SDL_SCANCODE_E)
+                {
+                        tool_state[3] = 1 ;
+                        currentTool ==3 ;
+                }
+                else if(event->key.keysym.scancode == SDL_SCANCODE_F)
+                {
+                        tool_state[4] = 1 ;
+                        currentTool == 4 ;
+                }
+                else if(event->key.keysym.scancode == SDL_SCANCODE_C)
+                {
+                        tool_state[6] = 1 ;
+                        currentTool == 6 ;
+                }
+}*/
 void renderColors()
 {
         SDL_Rect s_color , d_color ;
-        SDL_QueryTexture(colors[7] , 0 , 0 , &s_color.w , &s_color.h);
+        SDL_QueryTexture(texture_colors[7] , 0 , 0 , &s_color.w , &s_color.h);
         SDL_Rect s_white , d_white ;
         SDL_QueryTexture(WhiteColor , 0 , 0 , &s_white.w , &s_white.h ) ;
         SDL_Rect s_sel , d_sel ;
@@ -295,7 +350,7 @@ void renderColors()
         d_sel.w = s_sel.w ;
         d_sel.h = s_sel.h ;
         s_sel.x = s_sel.y = 0 ;
-        d_sel.y  = 750 ;
+        d_sel.y  = screenheight-14 ;
         int i ;
         for ( int i = 0 ; i <3 ; i++)
         {
@@ -303,7 +358,7 @@ void renderColors()
                 d_white.h = 70;
                 s_white.x = s_white.y = 0;
                 d_white.x = 140 + i*100;
-                d_white.y = 675;
+                d_white.y = screenheight - offset_height +7;
                 SDL_RenderCopy(renderer, WhiteColor, &s_white, &d_white);
                 if(color_state[i] == 1)
                 {
@@ -317,8 +372,8 @@ void renderColors()
                 d_color.h = 60;
                 s_color.x = s_color.y = 0;
                 d_color.x = 145 + i*100;
-                d_color.y = 680;
-                SDL_RenderCopy(renderer , colors[i] , &s_color , &d_color);
+                d_color.y = screenheight - offset_height + 12;
+                SDL_RenderCopy(renderer , texture_colors[i] , &s_color , &d_color);
         }
         for ( int i = 3 ; i < 10  ; i++)
         {
@@ -331,7 +386,7 @@ void renderColors()
                 d_white.h = 70;
                 s_white.x = s_white.y = 0;
                 d_white.x = 240 + i*100;
-                d_white.y = 675;
+                d_white.y = screenheight - offset_height +7 ;
                 SDL_RenderCopy(renderer, WhiteColor, &s_white, &d_white);
         }
         for ( int i = 3 ; i < 10 ; i++)
@@ -340,14 +395,14 @@ void renderColors()
                 d_color.h = 60;
                 s_color.x = s_color.y = 0;
                 d_color.x = 245 + i*100;
-                d_color.y = 680;
-                SDL_RenderCopy(renderer , colors[i] , &s_color , &d_color);
+                d_color.y = screenheight - offset_height +12 ;
+                SDL_RenderCopy(renderer , texture_colors[i] , &s_color , &d_color);
         }
 }
 void renderTools()
 {
         SDL_Rect s , d ;
-        SDL_QueryTexture(tools[0] , 0 , 0 , &s.w , &s.h) ;
+        SDL_QueryTexture(texture_tools[0] , 0 , 0 , &s.w , &s.h) ;
         SDL_Rect s_sel , d_sel ;
         SDL_QueryTexture(selector , 0 , 0 , &s_sel.w , &d_sel.h) ;
         s_sel.x = s_sel.y = 0 ;
@@ -362,7 +417,7 @@ void renderTools()
                 d.y = 30 + i*100 ;
                 d.h = s.h ;
                 d.w = s.w ;
-                SDL_RenderCopy(renderer , tools[i] , &s , &d) ;
+                SDL_RenderCopy(renderer , texture_tools[i] , &s , &d) ;
                 if(tool_state[i] == 1)
                 {
                         d_sel.y = 119+i*100 ;
@@ -694,6 +749,7 @@ void handleEvent()
                 {
                         if(event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
                                 quit = 1;
+                        //handleToolsWithKeyboard(&event) ;
                 }
                 break ;
                 case SDL_QUIT :
@@ -773,38 +829,83 @@ void handleEvent()
                 break;
         }
 }
-void render()
+void renderBackgroundImage()
 {
-        SDL_UpdateTexture(Canvas, NULL, pixels, (screenwidth-110) * sizeof(Uint32));
-        SDL_RenderClear(renderer);
-        SDL_RenderCopy(renderer , background , 0 , 0 ) ;
-        SDL_Rect s_canvas;
-        SDL_Rect d_canvas;
-        SDL_QueryTexture(Canvas , 0 , 0 , &s_canvas.w , &s_canvas.h);
-        s_canvas.x = s_canvas.y = 0;
-        d_canvas.x = 110;
-        d_canvas.y = 0;
-        d_canvas.w = s_canvas.w;
-        d_canvas.h = s_canvas.h;
-        renderColors() ;
-        renderTools() ;
-        SDL_RenderCopy(renderer, Canvas, &s_canvas, &d_canvas);
-        if(currentTool == TOOL_ERASER && xnew > 0 && ynew < 668 )
+         SDL_RenderCopy(renderer , texture_background , 0 , 0 ) ;
+}
+void renderCanvas()
+{
+        SDL_Rect canvas_source;
+        SDL_Rect canvas_destination;
+        SDL_QueryTexture(Canvas , 0 , 0 , &canvas_source.w , &canvas_source.h);
+        canvas_source.x = canvas_source.y = 0;
+        canvas_destination.x = 110;
+        canvas_destination.y = 0;
+        canvas_destination.w = canvas_source.w;
+        canvas_destination.h = canvas_source.h;
+        SDL_RenderCopy(renderer, Canvas, &canvas_source, &canvas_destination);
+}
+void putEraserRectangleOnCanvas()
+{
+        if(currentTool == TOOL_ERASER && xnew > 0 && ynew < screenheight - offset_height )
         {
-                rectangleRGBA(renderer , xnew-25+110 , ynew-25 , xnew+25+110 , ynew+25 , 0 , 0 , 0 ,255) ;
+                int eraser_rectangle_width = 50 ;
+                int eraser_rectangle_height = 50 ;
+                int x1 = xnew + offset_width - (eraser_rectangle_width/2) ;
+                int y1 = ynew - (eraser_rectangle_height/2) ;
+                int x2 = xnew + offset_width + (eraser_rectangle_width/2) ;
+                int y2 = ynew + (eraser_rectangle_height/2) ;
+             
+                rectangleRGBA(renderer , x1-1 , y1-1, x2 +1, y2+1 , 0 ,0 ,0 ,255) ;
+                rectangleRGBA(renderer , x1 , y1 , x2 , y2 , 255, 255 , 255 ,255) ;
+                //rectangleRGBA(renderer , x1+1 , y1+1 , x2-1 , y2-1 , 0 , 0 , 0 ,255) ;
                 SDL_ShowCursor(SDL_DISABLE) ;
         }
         else
                SDL_ShowCursor(SDL_ENABLE) ;
-        if(xnew>0 && ynew < 668)
+}
+void putToolIconsOnCanvas()
+{
+        if(xnew >0 && ynew < screenheight - offset_height )
         {
                 renderTooI_icons() ;
                 SDL_ShowCursor(SDL_DISABLE) ;
         }
         else
                 SDL_ShowCursor(SDL_ENABLE) ;
+}
+void render()
+{
+        SDL_UpdateTexture(Canvas, NULL, pixels, (screenwidth-110) * sizeof(Uint32));
+
+        SDL_RenderClear(renderer);
+        renderBackgroundImage() ;
+        renderColors() ;
+        renderTools() ;
+        renderCanvas() ;
+        putEraserRectangleOnCanvas() ;
+        putToolIconsOnCanvas() ;
         SDL_RenderPresent(renderer);
 
+}
+void clean()
+{
+        free(pixels);
+        SDL_DestroyTexture(texture_background) ;
+        int i ;
+        for( i = 0 ; i < TOTAL_COLORS ; i++)
+                SDL_DestroyTexture(texture_colors[i]) ;
+        for( i = 0 ; i < TOTAL_TOOLS ; i++)
+                SDL_DestroyTexture(texture_tools[i]) ;
+        for ( i = 0 ; i < 5  ; i ++)
+                SDL_DestroyTexture(canvas_tools[i]) ;
+        SDL_DestroyTexture(Canvas);
+        SDL_DestroyTexture(selector);
+        SDL_DestroyTexture(WhiteColor);
+        SDL_DestroyTexture(isSelected);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
 }
 int main(int argc, char ** argv)
 {
@@ -818,11 +919,6 @@ int main(int argc, char ** argv)
                 handleEvent();
                 render();
         }
-        free(pixels);
-        SDL_DestroyTexture(Canvas);
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-
+        clean() ;
         return 0;
 }
