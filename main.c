@@ -5,7 +5,7 @@
 #include<SDL2/SDL2_gfxPrimitives.h>
 #include<libpng12/png.h>
 #include<string.h>
-#define TOTAL_TOOLS 10
+#define TOTAL_TOOLS 7
 #define TOTAL_COLORS 10
 #define TOTAL_PRIMARY_COLORS 3
 int screenwidth ;
@@ -49,13 +49,28 @@ enum
         TOOL_PNG , //# 5
         TOOL_CLEAR //# 6
 } ;
+enum
+{
+        COLOR_BLACK , // 0
+        COLOR_WHITE , // 1
+        COLOR_GREY , // 2
+        COLOR_RED , // 3
+        COLOR_ORANGE , // 4
+        COLOR_YELLOW , // 5
+        COLOR_PINK , // 6
+        COLOR_CYAN , // 7
+        COLOR_BLUE , // 8
+        COLOR_GREEN // 9
+} ;
 // Funtions Prototypes
 int init() ;  // Initialization of SDL
 void initBackground() ; // Load Background IMAGE to surface
 void initColors() ;  // Load Colors IMAGE to surface
 void initTools() ; // Load Tools IMAGE to surface
 void handleColors(SDL_Event * event) ; // Handling with Color Buttons
+void handleColorsWithKeyboard(SDL_Event * event) ;
 void handleTools(SDL_Event * event) ;  // Handling with Tool Buttons
+void handleToolsWithKeyboard(SDL_Event * event) ; // Handlin Tools Buttons with KeyBoard
 void renderColors() ; // Display Color Buttons on screen(window of computer screen)
 void renderTools() ;  // Display Tool Buttons on screen(window of computer screen)
 void putPixel_Screen(int x , int y , Uint32 c) ; // Checking pixel position and put it on Canvas
@@ -95,7 +110,7 @@ int init()
         //Checking Screen Resolution for HD AND FULL HD
         if(width == screenwidth)
         {
-               window = SDL_CreateWindow("Paint",
+               window = SDL_CreateWindow("Paint Max",
                 SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenwidth, screenheight, SDL_WINDOW_FULLSCREEN);
         }
         else
@@ -153,6 +168,7 @@ int init()
         avail_Colors[8] = { 0 , 0 , 255} ;
         avail_Colors[9] = { 27 , 119 , 10} ;
         previousTool = 0 ;
+
         return 1;
 
 }
@@ -160,7 +176,7 @@ void initBackground()
 {
         /* Load image and create a texture from that image */
         SDL_Surface* back;
-        if(screenwidth == 768)
+        if(screenwidth == 1366)
                back = IMG_Load("./res/grids.png");
         else
                back = IMG_Load("./res/grids1080.png");
@@ -286,19 +302,111 @@ void handleColors(SDL_Event *event)
 
         }
 }
+void handleColorsWithKeyboard(SDL_Event * event)
+{
+        int i ;
+        if(event->key.keysym.scancode == SDL_SCANCODE_0 || event->key.keysym.sym == SDLK_0)
+        {
+                color_state[COLOR_BLACK] = 1 ;
+                for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_BLACK!=i)
+                                color_state[i] = 0 ;
+                currentColor = COLOR_BLACK ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_1|| event->key.keysym.sym == SDLK_1)
+        {
+                color_state[COLOR_WHITE] = 1 ;
+                for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_WHITE!=i)
+                                color_state[i] = 0 ;
+                currentColor = COLOR_WHITE ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_2 || event->key.keysym.sym == SDLK_2)
+        {
+                color_state[COLOR_GREY] = 1 ;
+                 for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_GREY!=i)
+                                color_state[i] = 0 ;
+                currentColor = COLOR_GREY  ;
+        }
+         else if(event->key.keysym.scancode == SDL_SCANCODE_3 || event->key.keysym.sym == SDLK_3)
+        {
+                color_state[COLOR_RED] = 1 ;
+                for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_RED!=i)
+                                color_state[i] = 0 ;
+                currentColor =COLOR_RED ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_4 || event->key.keysym.sym == SDLK_4)
+        {
+                color_state[COLOR_ORANGE] = 1 ;
+                for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_ORANGE!=i)
+                                color_state[i] = 0 ;
+                currentColor = COLOR_ORANGE ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_5 || event->key.keysym.sym == SDLK_5)
+        {
+                color_state[COLOR_YELLOW] = 1 ;
+                for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_YELLOW!=i)
+                                color_state[i] = 0 ;
+                currentColor = COLOR_YELLOW ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_6 || event->key.keysym.sym == SDLK_6)
+        {
+                color_state[COLOR_PINK] = 1 ;
+                for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_PINK!=i)
+                                color_state[i] = 0 ;
+                currentColor = COLOR_PINK ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_7 || event->key.keysym.sym == SDLK_7)
+        {
+                color_state[COLOR_CYAN] = 1 ;
+                 for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_CYAN!=i)
+                                color_state[i] = 0 ;
+                currentColor = COLOR_CYAN  ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_8 || event->key.keysym.sym == SDLK_8)
+        {
+                color_state[COLOR_BLUE] = 1 ;
+                for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_BLUE!=i)
+                                color_state[i] = 0 ;
+                currentColor =COLOR_BLUE ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_9 || event->key.keysym.sym == SDLK_9)
+        {
+                color_state[COLOR_GREEN] = 1 ;
+                for(i = 0 ; i < TOTAL_COLORS ; i++)
+                        if(COLOR_GREEN!=i)
+                                color_state[i] = 0 ;
+                currentColor = COLOR_GREEN ;
+        }
+}
 void handleTools(SDL_Event *event)
 {
         /* Handle Tools i.e. SELECTED or NOT SELECTED */
         int i ;
-        for ( i = 0 ; i <7 ; i++)
+        int fixed_xPos1 = 10 ;
+        int fixed_xPos2 = 95 ;
+        int yPosFirstToolButton = 30 ;
+        int offsetBetweenToolButtons= 15 ;
+        int difference_toolButtons  = 100 ;
+        int height_ToolButton = 85 ;
+        for ( i = 0 ; i < TOTAL_TOOLS ; i++)
         {
-                if(event->motion.x > 10 && event->motion.x < 95 && event->motion.y > 30+i*100 && event->motion.y < 30 + (i+1) * 85 + i*15)
+                if(event->motion.x > fixed_xPos1 && event->motion.x < fixed_xPos2
+                && event->motion.y > yPosFirstToolButton+i*difference_toolButtons
+                && event->motion.y < yPosFirstToolButton + (i+1) * height_ToolButton + i*offsetBetweenToolButtons)
                 {
                         tool_state[i]  = 1 ;
 //                        if(currentTool<3)
 //                        previousTool = currentTool ;
                         int j ;
-                        for(j = 0 ; j <7 ; j++)
+                        for(j = 0 ; j < TOTAL_TOOLS ; j++)
                                 if(i!=j)
                                         tool_state[j] = 0 ;
                         currentTool = i ;
@@ -306,39 +414,58 @@ void handleTools(SDL_Event *event)
 
         }
 }
-/*void handleToolsWithKeyboard(SDL_Event * event)
+void handleToolsWithKeyboard(SDL_Event * event)
 {
-                if(event->key.keysym.scancode == SDL_SCANCODE_P)
-                {
-                        tool_state[0] = 1 ;
-                        currentTool == 0 ;
-                }
-                else if(event->key.keysym.scancode == SDL_SCANCODE_B)
-                {
-                        tool_state[1] = 1 ;
-                        currentTool == 1 ;
-                }
-                else if(event->key.keysym.scancode == SDL_SCANCODE_T)
-                {
-                        tool_state[2] = 1 ;
-                        currentTool == 2  ;
-                }
-                else if(event->key.keysym.scancode == SDL_SCANCODE_E)
-                {
-                        tool_state[3] = 1 ;
-                        currentTool ==3 ;
-                }
-                else if(event->key.keysym.scancode == SDL_SCANCODE_F)
-                {
-                        tool_state[4] = 1 ;
-                        currentTool == 4 ;
-                }
-                else if(event->key.keysym.scancode == SDL_SCANCODE_C)
-                {
-                        tool_state[6] = 1 ;
-                        currentTool == 6 ;
-                }
-}*/
+        int i ;
+        if(event->key.keysym.scancode == SDL_SCANCODE_P)
+        {
+                tool_state[TOOL_PENCIL] = 1 ;
+                for(i = 0 ; i < TOTAL_TOOLS ; i++)
+                        if(TOOL_PENCIL!=i)
+                                tool_state[i] = 0 ;
+                currentTool = TOOL_PENCIL ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_B)
+        {
+                tool_state[TOOL_BRUSH] = 1 ;
+                for(i = 0 ; i < TOTAL_TOOLS ; i++)
+                        if(TOOL_BRUSH!=i)
+                                tool_state[i] = 0 ;
+                currentTool = TOOL_BRUSH ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_T)
+        {
+                tool_state[TOOL_BRUSH_THICK] = 1 ;
+                 for(i = 0 ; i < TOTAL_TOOLS ; i++)
+                        if(TOOL_BRUSH_THICK!=i)
+                                tool_state[i] = 0 ;
+                currentTool = TOOL_BRUSH_THICK  ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_E)
+        {
+                tool_state[TOOL_ERASER] = 1 ;
+                for(i = 0 ; i < TOTAL_TOOLS ; i++)
+                        if(TOOL_ERASER!=i)
+                                tool_state[i] = 0 ;
+                currentTool =TOOL_ERASER ;
+        }
+        else if(event->key.keysym.scancode == SDL_SCANCODE_F)
+        {
+                tool_state[TOOL_BUCKET] = 1 ;
+                for(i = 0 ; i < TOTAL_TOOLS ; i++)
+                        if(TOOL_BUCKET!=i)
+                                tool_state[i] = 0 ;
+                currentTool = TOOL_BUCKET ;
+        }
+//        else if(event->key.keysym.scancode == SDL_SCANCODE_C)
+//        {
+//                tool_state[6] = 1 ;
+//                for(i = 0 ; i < TOTAL_TOOLS ; i++)
+//                        if(6!=i)
+//                                tool_state[i] = 0 ;
+//                currentTool = TOOL_CLEAR ;
+//        }
+}
 void renderColors()
 {
         SDL_Rect s_color , d_color ;
@@ -352,6 +479,7 @@ void renderColors()
         s_sel.x = s_sel.y = 0 ;
         d_sel.y  = screenheight-14 ;
         int i ;
+        int xPositionFirstColorButton = 140 ,difference_colorButtons  = 100 ;
         for ( int i = 0 ; i <3 ; i++)
         {
                 d_white.w = 70;
@@ -427,8 +555,8 @@ void renderTools()
 }
 void putPixel_Screen(int x , int y , Uint32 c)
 {
-        if( x >= 0 && y>=0 && x< screenwidth-110 && y<screenheight-100)
-                pixels[y*(screenwidth -110) + x] = c ;
+        if( x >= 0 && y>=0 && x< screenwidth-offset_width && y<screenheight-offset_height)
+                pixels[y*(screenwidth - offset_width) + x] = c ;
 }
 void putPixel( int width , int x , int y, int r , int g , int b)
 {
@@ -468,12 +596,12 @@ void swap(int *a ,int *b)
 }
 void drawLine(  int x1 , int y1 , int x2 , int y2)
 {
-
         int dx = x2 - x1 ;
         int dy  = y2 - y1 ;
         int adx =abs(dx) ;
         int ady = abs(dy) ;
         if(x1 == x2 && y1 == y2)
+
                 putPixel(currentTool , x1 ,y1 , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b);
         if ( adx >= ady)
         {
@@ -525,7 +653,7 @@ void erase( int x , int y)
 }
 void getPixel(int x , int y , int*r , int*g , int* b)
 {
-        Uint32 color = pixels[y*(screenwidth -110) + x];
+        Uint32 color = pixels[y*(screenwidth -offset_width) + x];
         Uint8 * p = (Uint8*)(&color);
         *r = p[2];
         *g=  p[1];
@@ -550,13 +678,13 @@ int colors_close(int r1 , int g1 , int b1 , int r2 , int g2 , int b2)
                 return r + g + b < 1;
         }
 }
-void do_flood_fill(int x, int y,int r1 , int g1 , int b1, int r2,int g2 , int b2)
+void do_flood_fill(int x, int y,int r_new , int g_new , int b_new, int r_old,int g_old , int b_old)
 {
 //        static int count = 0 ;
 //        if(count > 350 )
 //                return ;
         int fillL, fillR, i, in_line;
-        if (colors_close(r1,g1,b1, r2,g2,b2))
+        if (colors_close(r_new,g_new,b_new, r_old,g_old,b_old))
         return;
 
 
@@ -567,12 +695,12 @@ void do_flood_fill(int x, int y,int r1 , int g1 , int b1, int r2,int g2 , int b2
 
         while (in_line)
         {
-        putPixel(0 , fillL, y, r1,g1,b1);
-        fillL--;
-        int r , g , b;
-        getPixel(fillL , y , &r ,&g , &b);
-        in_line =
-        (fillL < 0) ? 0 : colors_close(r,g,b,r2,g2,b2);
+                putPixel(0 , fillL, y, r_new,g_new,b_new);
+                fillL--;
+                int r_canvas , g_canvas , b_canvas ;
+                getPixel(fillL , y , &r_canvas ,&g_canvas , &b_canvas);
+                in_line =
+                (fillL < 0) ? 0 : colors_close( r_canvas , g_canvas , b_canvas,r_old,g_old,b_old);
         }
 
         fillL++;
@@ -582,37 +710,36 @@ void do_flood_fill(int x, int y,int r1 , int g1 , int b1, int r2,int g2 , int b2
         in_line = 1;
         while (in_line)
         {
-        putPixel(0,fillR, y, r1,g1,b1);
-        fillR++;
-        int r , g , b;
-        getPixel(fillR , y , &r ,&g , &b);
-        in_line = (fillR >= screenwidth-110) ? 0 : colors_close(r,g,b,r2,g2,b2);
+                putPixel(0,fillR, y,r_new,g_new,b_new);
+                fillR++;
+                int r_canvas , g_canvas , b_canvas ;
+                getPixel(fillR , y , &r_canvas ,&g_canvas , &b_canvas);
+                in_line = (fillR >= screenwidth-offset_width) ? 0 : colors_close( r_canvas , g_canvas , b_canvas,r_old,g_old,b_old);
         }
         fillR--;
 
         for (i = fillL; i <= fillR; i++)
         {
-        int r , g , b;
-        if(y>0)
-        getPixel(i , y-1 , &r ,&g , &b);
+                 int r_canvas , g_canvas , b_canvas ;
+                if(y>0)
+                        getPixel(i , y-1 , &r_canvas ,&g_canvas , &b_canvas);
 
-        if (y > 0 && colors_close(r,g,b,r2,g2,b2))
-        {
-        do_flood_fill(i, y - 1, r1 , g1 , b1 , r2,g2,b2);
-        }
-        if(y < screenheight-100 -1)
-        getPixel(i , y+1 , &r ,&g , &b);
+                if (y > 0 && colors_close(r_canvas , g_canvas , b_canvas,r_old,g_old,b_old))
+                {
+                        do_flood_fill(i, y - 1, r_new,g_new,b_new, r_old,g_old,b_old);
+                }
+                if(y < screenheight-offset_height -1)
+                        getPixel(i , y+1 , &r_canvas ,&g_canvas , &b_canvas);
 
-        if (y < screenheight-100 && colors_close(r,g,b,r2,g2,b2))
-        {
-        do_flood_fill(i, y + 1, r1 , g1 , b1 , r2,g2,b2);
+                if (y < screenheight-offset_height && colors_close(r_canvas , g_canvas , b_canvas,r_old,g_old,b_old))
+                {
+                        do_flood_fill(i, y + 1, r_new,g_new,b_new, r_old,g_old,b_old);
+                }
         }
-        }
-//        count++ ;
 }
 void clearCanvas()
 {
-        memset(pixels, 255, (screenwidth-110)*(screenheight-100) * sizeof(Uint32));
+        memset(pixels, 255, (screenwidth-offset_width)*(screenheight-offset_height) * sizeof(Uint32));
 }
 void putTools()
 {
@@ -637,13 +764,15 @@ void renderTooI_icons()
         SDL_Rect s_pencil , d_pencil ;
         s_pencil.x = s_pencil.y = 0 ;
         int i ;
-        if(currentTool == TOOL_PENCIL)
+        if(currentTool == TOOL_PENCIL )
         {
                 SDL_QueryTexture(canvas_tools[0] , 0 , 0 , &s_pencil.w , &s_pencil.h) ;
                 d_pencil.w = s_pencil.w ;
                 d_pencil.h = s_pencil.h ;
-                d_pencil.x = xnew+110 ;
-                d_pencil.y =  ynew -28;
+                int x_pos_of_pencil_tip= 110 ;
+                int y_pos_of_pencil_tip = 28 ;
+                d_pencil.x = xnew+x_pos_of_pencil_tip ;
+                d_pencil.y =  ynew - y_pos_of_pencil_tip ;
                 SDL_RenderCopy(renderer , canvas_tools[0] , &s_pencil , &d_pencil) ;
         }
         else if(currentTool == TOOL_BRUSH)
@@ -651,41 +780,47 @@ void renderTooI_icons()
                 SDL_QueryTexture(canvas_tools[1] , 0 , 0 , &s_pencil.w , &s_pencil.h) ;
                 d_pencil.w = s_pencil.w ;
                 d_pencil.h = s_pencil.h ;
-                d_pencil.x = xnew+110 ;
-                d_pencil.y =  ynew -35;
+                int x_pos_of_brush_tip= 110 ;
+                int y_pos_of_brush_tip = 35 ;
+                d_pencil.x = xnew+x_pos_of_brush_tip ;
+                d_pencil.y =  ynew -y_pos_of_brush_tip;
                 SDL_RenderCopy(renderer , canvas_tools[1] , &s_pencil , &d_pencil) ;
         }
-        else if(currentTool == TOOL_BRUSH_THICK)
+        else if(currentTool == TOOL_BRUSH_THICK )
         {
                 SDL_QueryTexture(canvas_tools[2] , 0 , 0 , &s_pencil.w , &s_pencil.h) ;
                 d_pencil.w = s_pencil.w ;
                 d_pencil.h = s_pencil.h ;
-                d_pencil.x = xnew+98 ;
-                d_pencil.y =  ynew -41;
+                int x_pos_of_thick_brush_tip= 98 ;
+                int y_pos_of_thick_brush_tip = 41 ;
+                d_pencil.x = xnew+x_pos_of_thick_brush_tip ;
+                d_pencil.y =  ynew -y_pos_of_thick_brush_tip;
                 SDL_RenderCopy(renderer , canvas_tools[2] , &s_pencil , &d_pencil) ;
         }
-        else if(currentTool == TOOL_BUCKET)
+        else if(currentTool == TOOL_BUCKET )
         {
-                SDL_QueryTexture(canvas_tools[3] , 0 , 0 , &s_pencil.w , &s_pencil.h) ;
+                SDL_QueryTexture(canvas_tools[3] , 0 , 0 , &s_pencil.w , &s_pencil.h ) ;
                 d_pencil.w = s_pencil.w ;
                 d_pencil.h = s_pencil.h ;
-                d_pencil.x = xnew+106 ;
-                d_pencil.y =  ynew -30;
+                int x_pos_of_bucket_tip= 106 ;
+                int y_pos_of_bucket_tip = 30 ;
+                d_pencil.x = xnew+x_pos_of_bucket_tip ;
+                d_pencil.y =  ynew -y_pos_of_bucket_tip;
                 SDL_RenderCopy(renderer , canvas_tools[3] , &s_pencil , &d_pencil) ;
         }
 }
 void writeImage()
 {
-        char* buffer = (char*)malloc(sizeof(char)*(screenwidth-110)*(screenheight-100)*3);
+        char* buffer = (char*)malloc(sizeof(char)*(screenwidth-offset_width)*(screenheight-offset_height)*3);
         int i;
         int counter=0;
-        for(i = 0 ; i <(screenwidth-110)*(screenheight-100); i++)
+        for(i = 0 ; i <(screenwidth-offset_width)*(screenheight-offset_height); i++)
         {
-        Uint8* p = (Uint8*)(pixels+i);
+                Uint8* p = (Uint8*)(pixels+i);
 
-        buffer[counter++] = p[2];
-        buffer[counter++] = p[1];
-        buffer[counter++] = p[0];
+                buffer[counter++] = p[2];
+                buffer[counter++] = p[1];
+                buffer[counter++] = p[0];
         }
         int code =0 , index ;
         FILE * fp = fopen("saved_images/config.dat" , "rb+") ;
@@ -715,7 +850,7 @@ void writeImage()
         info_ptr = png_create_info_struct(png_ptr);
 
         png_init_io(png_ptr , fp);
-        png_set_IHDR(png_ptr , info_ptr , screenwidth-110 ,screenheight-100,
+        png_set_IHDR(png_ptr , info_ptr , screenwidth-offset_width ,screenheight-offset_height,
         8 , PNG_COLOR_TYPE_RGB , PNG_INTERLACE_NONE , PNG_COMPRESSION_TYPE_BASE,
         PNG_FILTER_TYPE_BASE);
 
@@ -726,15 +861,15 @@ void writeImage()
         png_set_text(png_ptr , info_ptr , &title_text , 1);
 
         png_write_info(png_ptr , info_ptr);
-        row = (png_bytep) malloc(3 * (screenwidth-110)* sizeof(png_byte));
+        row = (png_bytep) malloc(3 * (screenwidth-offset_width)* sizeof(png_byte));
         int x , y;
-        for(y = 0 ; y<screenheight-100 ; y++)
+        for(y = 0 ; y<screenheight-offset_height ; y++)
         {
-        for(x= 0 ; x<(screenwidth-110)*3 ; x++){
-           row[x] = buffer[y*(screenwidth-110)*3 + x] ;
-           }
-
-        png_write_row(png_ptr, row);
+                for(x= 0 ; x<(screenwidth-offset_width)*3 ; x++)
+                {
+                        row[x] = buffer[y*(screenwidth-offset_width)*3 + x] ;
+                }
+                png_write_row(png_ptr, row);
         }
 
 }
@@ -749,7 +884,8 @@ void handleEvent()
                 {
                         if(event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
                                 quit = 1;
-                        //handleToolsWithKeyboard(&event) ;
+                        handleColorsWithKeyboard(&event) ;
+                        handleToolsWithKeyboard(&event) ;
                 }
                 break ;
                 case SDL_QUIT :
@@ -783,7 +919,7 @@ void handleEvent()
                                         tool_state[TOOL_PNG] = 0 ;
                                         tool_state[currentTool] = 1 ;
                                 }
-                                if(currentTool == TOOL_BUCKET && event.motion.x-110 > 0&& event.motion.y < screenheight-100)
+                                if(currentTool == TOOL_BUCKET && event.motion.x-offset_width > 0&& event.motion.y < screenheight-offset_height)
                                 {
                                         int r1 , g1  ,b1 , r2 , g2 , b2;
                                         r1 = avail_Colors[currentColor].r;
@@ -803,7 +939,7 @@ void handleEvent()
                 {
                         if(event.type ==SDL_MOUSEMOTION)
                         {
-                                xnew = event.motion.x-110 ;
+                                xnew = event.motion.x-offset_width ;
                                 ynew = event.motion.y ;
                         }
                         else
@@ -839,7 +975,7 @@ void renderCanvas()
         SDL_Rect canvas_destination;
         SDL_QueryTexture(Canvas , 0 , 0 , &canvas_source.w , &canvas_source.h);
         canvas_source.x = canvas_source.y = 0;
-        canvas_destination.x = 110;
+        canvas_destination.x = 110 ;
         canvas_destination.y = 0;
         canvas_destination.w = canvas_source.w;
         canvas_destination.h = canvas_source.h;
@@ -855,7 +991,7 @@ void putEraserRectangleOnCanvas()
                 int y1 = ynew - (eraser_rectangle_height/2) ;
                 int x2 = xnew + offset_width + (eraser_rectangle_width/2) ;
                 int y2 = ynew + (eraser_rectangle_height/2) ;
-             
+
                 rectangleRGBA(renderer , x1-1 , y1-1, x2 +1, y2+1 , 0 ,0 ,0 ,255) ;
                 rectangleRGBA(renderer , x1 , y1 , x2 , y2 , 255, 255 , 255 ,255) ;
                 //rectangleRGBA(renderer , x1+1 , y1+1 , x2-1 , y2-1 , 0 , 0 , 0 ,255) ;
@@ -876,7 +1012,7 @@ void putToolIconsOnCanvas()
 }
 void render()
 {
-        SDL_UpdateTexture(Canvas, NULL, pixels, (screenwidth-110) * sizeof(Uint32));
+        SDL_UpdateTexture(Canvas, NULL, pixels, (screenwidth-offset_width) * sizeof(Uint32));
 
         SDL_RenderClear(renderer);
         renderBackgroundImage() ;
