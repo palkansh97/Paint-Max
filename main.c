@@ -1,5 +1,6 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<math.h>
 #include <SDL2/SDL.h>
 #include<SDL2/SDL_image.h>
 #include<SDL2/SDL2_gfxPrimitives.h>
@@ -32,13 +33,26 @@ int xold , yold , xnew , ynew ;
 int currentColor ;
 int currentTool  ;
 int previousTool ;
+int xCenter , yCenter , x ,y ;
+int checkMotion = 0 , radius = 0 ;
 typedef struct colorElement
 {
         int r ;
         int g ;
         int b ;
 }ColorElement ;
-ColorElement avail_Colors[TOTAL_COLORS] ;
+ColorElement avail_Colors[TOTAL_COLORS] = {{0 , 0 , 0} , {255 , 255 , 255} , {194 ,194 ,194} , {255 , 0 , 0} , {237 , 114 , 5} ,
+					{255 , 255 , 0} , {221, 101 , 225} , {0 , 255 , 255} , {0 , 0 , 255} , {27 , 119 , 10}};
+/*	avail_Colors[0] =  ;
+        avail_Colors[1] =  ;
+        avail_Colors[2] =  ;
+        avail_Colors[3] = {255 , 0 , 0} ;
+        avail_Colors[4] = {237 , 114 , 5} ;
+        avail_Colors[5] = {255 , 255 , 0} ;
+        avail_Colors[6] = {221, 101 , 225} ;
+        avail_Colors[7] = {0 , 255 , 255} ;
+        avail_Colors[8] = {0 , 0 , 255} ;
+        avail_Colors[9] = {27 , 119 , 10} ;*/
 enum
 {
         TOOL_PENCIL , //# 0
@@ -88,17 +102,25 @@ void renderBackgroundImage() ;
 void renderCanvas() ;
 void putEraserRectangleOnCanvas() ;
 void putToolIconsOnCanvas() ;
+void onKeyDown(SDL_Event *event) ;
+void onMouseButtonDown(SDL_Event *event) ;
+void onMouseButtonUp(SDL_Event *event) ;
+void onMouseMotion(SDL_Event *event) ;
 void handleEvent() ; // Handle Mouse And Other Events
 void render() ; // Display Everthing on screen
-
+void drawAALine(int x1 , int y1 , int x2 , int y2) ;
+void drawCircle(int centerX , int centerY , int radius);
+void circlePutPixel(int X , int Y , int P , int Q) ;
+void plotCircle(int xm , int ym , int r) ;
 // Functions definations
 int init()
 {
         // Initialize everything in sdl
         SDL_Init(SDL_INIT_EVERYTHING) ;
+	int i , z ;
         // Get Screen Resolution
-        for( int i = 0 ; i < SDL_GetNumVideoDisplays() ; i++ )
-                int z = SDL_GetCurrentDisplayMode( i , &screen) ;
+        for(i = 0 ; i < SDL_GetNumVideoDisplays() ; i++ )
+                z = SDL_GetCurrentDisplayMode( i , &screen) ;
         int width = screen.w ;
 
         screenwidth = screen.w ;
@@ -107,17 +129,9 @@ int init()
         int canvasWidth = screenwidth - offset_width ;
         int canvasHeight = screenheight - offset_height ;
 
-        //Checking Screen Resolution for HD AND FULL HD
-        if(width == screenwidth)
-        {
-               window = SDL_CreateWindow("Paint Max",
-                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenwidth, screenheight, SDL_WINDOW_FULLSCREEN);
-        }
-        else
-        {
-                window = SDL_CreateWindow("Paint Max",
-                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenwidth, screenheight, SDL_WINDOW_FULLSCREEN);
-        }
+        window = SDL_CreateWindow("Paint Max",
+        SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenwidth, screenheight, SDL_WINDOW_FULLSCREEN);
+
         //Checking Window is NULL or NOT
         if(window == NULL)
                 return 0;
@@ -131,9 +145,9 @@ int init()
         // Allocating memeory to pixels
         pixels = (Uint32*)malloc( sizeof(Uint32)*canvasWidth * canvasHeight);
         // Set Pixels in Memory With White Background
-        memset(pixels, 255, canvasWidth*canvasHeight * sizeof(Uint32));
-        // Make ToolState and ColorState to NOT SELECTED
-        int i ;
+        memset(pixels, 255 , canvasWidth*canvasHeight * sizeof(Uint32));
+        
+	// Make ToolState and ColorState to NOT SELECTED
         for ( i = 0 ;i <TOTAL_COLORS ; i++)
         {
                 color_state[i] = 0;
@@ -156,19 +170,14 @@ int init()
         currentTool = 0 ;
         color_state[0] = 1;
         tool_state[0] = 1 ;
-        // Assigning RGB Values to Color
-        avail_Colors[0] = { 0 , 0 , 0} ;
-        avail_Colors[1] = { 255 , 255 , 255} ;
-        avail_Colors[2] = { 194 ,194 ,194} ;
-        avail_Colors[3] = { 255 , 0 , 0} ;
-        avail_Colors[4] = { 237 , 114 , 5} ;
-        avail_Colors[5] = { 255 , 255 , 0} ;
-        avail_Colors[6] = {  221, 101 , 225} ;
-        avail_Colors[7] = { 0 , 255 , 255} ;
-        avail_Colors[8] = { 0 , 0 , 255} ;
-        avail_Colors[9] = { 27 , 119 , 10} ;
+        //drawAALine(120 , 50, 150 , 140) ;
+        //drawAALine(280 , 280 , 400 , 380) ;
+        //drawLine(280 , 280 , 400 , 350) ;
+//        drawAALine(400 , 400 , 800 , 600) ;
+//        drawAALine(500 , 300 , 100 , 200) ;
+        //plotCircle(500 , 300 , 200) ;
+        drawCircle(300 , 500 , 100) ;
         previousTool = 0 ;
-
         return 1;
 
 }
@@ -556,7 +565,10 @@ void renderTools()
 void putPixel_Screen(int x , int y , Uint32 c)
 {
         if( x >= 0 && y>=0 && x< screenwidth-offset_width && y<screenheight-offset_height)
+        {
                 pixels[y*(screenwidth - offset_width) + x] = c ;
+
+        }
 }
 void putPixel( int width , int x , int y, int r , int g , int b)
 {
@@ -601,7 +613,6 @@ void drawLine(  int x1 , int y1 , int x2 , int y2)
         int adx =abs(dx) ;
         int ady = abs(dy) ;
         if(x1 == x2 && y1 == y2)
-
                 putPixel(currentTool , x1 ,y1 , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b);
         if ( adx >= ady)
         {
@@ -618,7 +629,6 @@ void drawLine(  int x1 , int y1 , int x2 , int y2)
                 {
                         putPixel(currentTool , i , j  , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
                         j = j + m ;
-
                 }
         }
         else if (ady > adx)
@@ -635,10 +645,136 @@ void drawLine(  int x1 , int y1 , int x2 , int y2)
                 {
                         putPixel(currentTool  , j , i  , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b  ) ;
                         j = j + m ;
-
                 }
         }
+
 }
+void circlePutPixel(int xCenter , int yCenter , int x  , int y)
+{
+        putPixel(currentTool , xCenter+x , yCenter+y , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+        putPixel(currentTool , xCenter+x , yCenter-y , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+        putPixel(currentTool , xCenter-x , yCenter+y , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+        putPixel(currentTool , xCenter-x , yCenter-y , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+
+        putPixel(currentTool , xCenter+y , yCenter+x , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b) ;
+        putPixel(currentTool , xCenter+y , yCenter-x , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+        putPixel(currentTool , xCenter-y , yCenter+x , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+        putPixel(currentTool , xCenter-y , yCenter-x , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+}
+void drawCircle(int xCenter , int yCenter  , int radius)
+{
+        int x = 0 , y  = radius ;
+        int d = 1 - radius ;
+        circlePutPixel(xCenter , yCenter , x , y) ;
+        while( x < y)
+        {
+                x++ ;
+                if( d < 0)
+                {
+                        d = d+ 2 * x + 1;
+                }
+                else
+                {
+                        y-- ;
+                        d = d + 2*(x-y) + 1 ;
+                }
+                circlePutPixel(xCenter , yCenter , x , y) ;
+        }
+}
+//void plotCircle(int xm, int ym, int r)
+//{
+//        int x = -r, y = 0, err = 2-2*r; /* II. Quadrant */
+//        do
+//        {
+//                putPixel(currentTool , xm-x, ym+y , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ); /*   I. Quadrant */
+//                putPixel(currentTool , xm-y, ym-x, avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b); /*  II. Quadrant */
+//                putPixel(currentTool , xm+x, ym-y, avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b); /* III. Quadrant */
+//                putPixel(currentTool , xm+y, ym+x, avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b); /*  IV. Quadrant */
+//                r  = err;
+//                if (r <= y)
+//                        err += ++y*2+1;           /* e_xy+e_y < 0 */
+//                if (r > x || err > y)
+//                        err += ++x*2+1; /* e_xy+e_x > 0 or no 2nd y-step */
+//        } while (x < 0);
+//}
+//double calculateAlpha(double distance)
+//{
+//        printf("distance : %.2f     " , distance ) ;
+//        double a ;
+////        if(distance > 0 )
+////                distance = distance - abs(distance) ;
+////        else
+////                distance = abs(distance - abs(distance)) ;
+////        if(fabs(distance) >=0.0 && fabs(distance)<=1.5)
+//        a  = (1- (fabs(distance) * 0.667)) * (1- (fabs(distance) * 0.667));
+//        printf("intensity : %.2f " , a) ;
+////        else
+////                a = 255 / fabs(distance) ;
+//        return a ;
+//}
+//void DrawPixelId(int x , int y , double distance , int r , int g , int b)
+//{
+//        printf("x : %d , y : %d " , x , y) ;
+//        double  intensity = calculateAlpha((distance)) ;
+//        //printf("alpha : %d\n" , alpha) ;
+////        if ( alpha > 255 && alpha < alpha-255)
+////                alpha = alpha - 255 ;
+////        else if( alpha >=0 && alpha <=255)
+//                //alpha = 255-alpha ;
+////        else
+////                alpha = 255 ;
+////        printf("alpha : %d\n" , alpha) ;
+//        double alpha = 255  - (intensity * 255) ;
+//        printf("alpha : %.1f\n", alpha) ;
+//        putPixel(0 , x , y , r+(int)alpha , g+(int)alpha , b+(int)alpha) ;
+//}
+//void drawAALine(int x1 , int y1 , int x2 , int y2)
+//{
+//        int dx = x2 - x1 ;
+//        int dy = y2 - y1 ;
+//        int du , u , uincr ;
+//        int dv , v , vincr ;
+//        if(abs(dx) >= abs(dy))
+//        {
+//                du = abs(dx) ;
+//                dv = abs(dy) ;
+//                u = x1 ;
+//                v = y1 ;
+//        }
+//        else
+//        {
+//                du = abs(dy) ;
+//                dv = abs(dx) ;
+//                u = y1 ;
+//                v = x1 ;
+//        }
+//        int uend = u + du ;
+//        int d = 2 * dv - du ;
+//        int incrS = 2 * dv ;
+//        int incrD = 2 * (dv-du) ;
+//        int twovdu = 0 ;
+//        double invD = 1.0/(2.0 * sqrt(du*du+dv*dv)) ;
+//        double invD2du = 2.0 * invD * du ;
+//        do
+//        {
+//                DrawPixelId(u , v , twovdu*invD , avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+//                DrawPixelId(u , v+1 , invD2du - twovdu*invD ,  avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+//                DrawPixelId(u , v-1, invD2du + twovdu*invD ,  avail_Colors[currentColor].r ,avail_Colors[currentColor].g , avail_Colors[currentColor].b ) ;
+//                if(d < 0)
+//                {
+//                        twovdu = u + du ;
+//                        d = d + incrS ;
+//                }
+//                else
+//                {
+//                        twovdu = u - du ;
+//                        d = d + incrD ;
+//                        v = v + 1 ;
+//                }
+//                u = u + 1 ;
+//        }while( u < uend) ;
+//}
+
 void erase( int x , int y)
 {
         int i , j ;
@@ -680,9 +816,6 @@ int colors_close(int r1 , int g1 , int b1 , int r2 , int g2 , int b2)
 }
 void do_flood_fill(int x, int y,int r_new , int g_new , int b_new, int r_old,int g_old , int b_old)
 {
-//        static int count = 0 ;
-//        if(count > 350 )
-//                return ;
         int fillL, fillR, i, in_line;
         if (colors_close(r_new,g_new,b_new, r_old,g_old,b_old))
         return;
@@ -761,52 +894,52 @@ void putTools()
 }
 void renderTooI_icons()
 {
-        SDL_Rect s_pencil , d_pencil ;
-        s_pencil.x = s_pencil.y = 0 ;
+        SDL_Rect s_tool , d_tool ;
+        s_tool.x = s_tool.y = 0 ;
         int i ;
         if(currentTool == TOOL_PENCIL )
         {
-                SDL_QueryTexture(canvas_tools[0] , 0 , 0 , &s_pencil.w , &s_pencil.h) ;
-                d_pencil.w = s_pencil.w ;
-                d_pencil.h = s_pencil.h ;
-                int x_pos_of_pencil_tip= 110 ;
+                SDL_QueryTexture(canvas_tools[0] , 0 , 0 , &s_tool.w , &s_tool.h) ;
+                d_tool.w = s_tool.w ;
+                d_tool.h = s_tool.h ;
+                int x_pos_of_pencil_tip = 110 ;
                 int y_pos_of_pencil_tip = 28 ;
-                d_pencil.x = xnew+x_pos_of_pencil_tip ;
-                d_pencil.y =  ynew - y_pos_of_pencil_tip ;
-                SDL_RenderCopy(renderer , canvas_tools[0] , &s_pencil , &d_pencil) ;
+                d_tool.x = xnew +x_pos_of_pencil_tip ;
+                d_tool.y =  ynew - y_pos_of_pencil_tip ;
+                SDL_RenderCopy(renderer , canvas_tools[0] , &s_tool , &d_tool) ;
         }
         else if(currentTool == TOOL_BRUSH)
         {
-                SDL_QueryTexture(canvas_tools[1] , 0 , 0 , &s_pencil.w , &s_pencil.h) ;
-                d_pencil.w = s_pencil.w ;
-                d_pencil.h = s_pencil.h ;
+                SDL_QueryTexture(canvas_tools[1] , 0 , 0 , &s_tool.w , &s_tool.h) ;
+                d_tool.w = s_tool.w ;
+                d_tool.h = s_tool.h ;
                 int x_pos_of_brush_tip= 110 ;
                 int y_pos_of_brush_tip = 35 ;
-                d_pencil.x = xnew+x_pos_of_brush_tip ;
-                d_pencil.y =  ynew -y_pos_of_brush_tip;
-                SDL_RenderCopy(renderer , canvas_tools[1] , &s_pencil , &d_pencil) ;
+                d_tool.x = xnew+x_pos_of_brush_tip ;
+                d_tool.y =  ynew -y_pos_of_brush_tip;
+                SDL_RenderCopy(renderer , canvas_tools[1] , &s_tool , &d_tool) ;
         }
         else if(currentTool == TOOL_BRUSH_THICK )
         {
-                SDL_QueryTexture(canvas_tools[2] , 0 , 0 , &s_pencil.w , &s_pencil.h) ;
-                d_pencil.w = s_pencil.w ;
-                d_pencil.h = s_pencil.h ;
+                SDL_QueryTexture(canvas_tools[2] , 0 , 0 , &s_tool.w , &s_tool.h) ;
+                d_tool.w = s_tool.w ;
+                d_tool.h = s_tool.h ;
                 int x_pos_of_thick_brush_tip= 98 ;
                 int y_pos_of_thick_brush_tip = 41 ;
-                d_pencil.x = xnew+x_pos_of_thick_brush_tip ;
-                d_pencil.y =  ynew -y_pos_of_thick_brush_tip;
-                SDL_RenderCopy(renderer , canvas_tools[2] , &s_pencil , &d_pencil) ;
+                d_tool.x = xnew+x_pos_of_thick_brush_tip ;
+                d_tool.y =  ynew -y_pos_of_thick_brush_tip;
+                SDL_RenderCopy(renderer , canvas_tools[2] , &s_tool , &d_tool) ;
         }
         else if(currentTool == TOOL_BUCKET )
         {
-                SDL_QueryTexture(canvas_tools[3] , 0 , 0 , &s_pencil.w , &s_pencil.h ) ;
-                d_pencil.w = s_pencil.w ;
-                d_pencil.h = s_pencil.h ;
+                SDL_QueryTexture(canvas_tools[3] , 0 , 0 , &s_tool.w , &s_tool.h ) ;
+                d_tool.w = s_tool.w ;
+                d_tool.h = s_tool.h ;
                 int x_pos_of_bucket_tip= 106 ;
                 int y_pos_of_bucket_tip = 30 ;
-                d_pencil.x = xnew+x_pos_of_bucket_tip ;
-                d_pencil.y =  ynew -y_pos_of_bucket_tip;
-                SDL_RenderCopy(renderer , canvas_tools[3] , &s_pencil , &d_pencil) ;
+                d_tool.x = xnew+x_pos_of_bucket_tip ;
+                d_tool.y =  ynew -y_pos_of_bucket_tip;
+                SDL_RenderCopy(renderer , canvas_tools[3] , &s_tool , &d_tool) ;
         }
 }
 void writeImage()
@@ -871,98 +1004,144 @@ void writeImage()
                 }
                 png_write_row(png_ptr, row);
         }
+        fclose(fp) ;
+}
+void onKeyDown(SDL_Event *event)
+{
+    if(event->key.keysym.scancode == SDL_SCANCODE_ESCAPE)
+        quit = 1;
+    handleColorsWithKeyboard(event) ;
+    handleToolsWithKeyboard(event) ;
+}
+void onMouseButtonUp(SDL_Event *event)
+{
+    if (event->button.button == SDL_BUTTON_LEFT || event->type == SDL_FINGERUP )
+        leftMouseButtonDown = 0;
+    if(checkMotion)
+    {
+        radius = abs(abs(xCenter - xold) * abs(xCenter - xold)) + abs(abs(yCenter - yold) * abs(yCenter - yold)) ;
+//        printf("Radius : %d\n" , radius) ;
+        radius = sqrt(radius) ;
+//        printf("xCenter : %d , yCenter : %d\n" , xCenter , yCenter) ;
+//        printf("xold : %d , yold : %d\n" , xold , yold) ;
+//        printf("xnew : %d , ynew : %d\n" , xnew , ynew) ;
+//        printf("Radius : %d\n" , radius) ;
+        drawCircle(xCenter , yCenter , radius) ;
+    }
+//    if(!leftMouseButtonDown && event.button.state == SDL_RELEASED)
+//    {
+//            x = xnew ;
+//            y = ynew ;
+//            printf("Hello") ;
+//            printf("x : %d , y : %d\n" , x, y) ;
+//    }
+}
+void onMouseButtonDown(SDL_Event *event)
+{
+    if(event->button.button == SDL_BUTTON_LEFT || event->type==SDL_FINGERDOWN)
+    {
+        leftMouseButtonDown = 1;
+    }
+    handleTools(event) ;
+    handleColors(event) ;
+    if(currentTool == TOOL_CLEAR)
+    {
+        clearCanvas() ;
+        currentTool = TOOL_PENCIL ;
+        tool_state[TOOL_CLEAR] = 0 ;
+        tool_state[currentTool] = 1 ;
+    }
+    if(currentTool == TOOL_PNG)
+    {
+        writeImage() ;
+        currentTool = TOOL_PENCIL ;
+        tool_state[TOOL_PNG] = 0 ;
+        tool_state[currentTool] = 1 ;
+    }
+    if(currentTool == TOOL_BUCKET && event->motion.x-offset_width > 0 && event->motion.y < screenheight-offset_height)
+    {
+        int r1 , g1  ,b1 , r2 , g2 , b2;
+        r1 = avail_Colors[currentColor].r;
+        g1 = avail_Colors[currentColor].g;
+        b1 = avail_Colors[currentColor].b;
+        getPixel(xnew  , ynew , &r2 , &g2 ,&b2);
+        do_flood_fill(xnew , ynew , r1,g1,b1 , r2 , g2 , b2);
+    }
+    if(currentTool == TOOL_ERASER && event->button.state == SDL_PRESSED && event->button.clicks == 1)
+        erase(xnew , ynew) ;
+//        if(currentTool == TOOL_PENCIL || currentTool == TOOL_BRUSH || currentTool == TOOL_BRUSH_THICK)
+//        {
+//                putPixel(currentTool , xnew , ynew , avail_Colors[currentColor].r, avail_Colors[currentColor].g , avail_Colors[currentColor].b) ;
+//        }
+    if(leftMouseButtonDown && event->button.state == SDL_PRESSED)
+    {
+        xCenter = xold ;
+        yCenter = yold ;
 
+    }
+}
+void onMouseMotion(SDL_Event *event)
+{
+    if(event->type == SDL_MOUSEMOTION)
+    {
+        xnew = event->motion.x-offset_width ;
+        ynew = event->motion.y ;
+    }
+    if(event->type == SDL_FINGERMOTION)
+    {
+        xnew = event->tfinger.x ;
+        ynew = event->tfinger.y ;
+    }
+    if(leftMouseButtonDown)
+    {
+        if(currentTool == TOOL_PENCIL || currentTool == TOOL_BRUSH || currentTool == TOOL_BRUSH_THICK)
+        {
+            SDL_ShowCursor(SDL_DISABLE) ;
+            drawLine(xold , yold , xnew , ynew) ;
+            checkMotion = 1 ;
+
+            //drawCircle(xold , yold , 20) ;
+        }
+        else if(currentTool == TOOL_ERASER)
+        {
+            erase(xnew , ynew) ;
+        }
+    }
+//    xCenter = xold ;
+//    yCenter = yold ;
+//printf("xold : %d , yold : %d\n" , xold , yold) ;
+    xold = xnew ;
+    yold = ynew ;
 }
 void handleEvent()
 {
         SDL_Event event;
         SDL_PollEvent(&event);
-
         switch (event.type)
         {
-                case SDL_KEYDOWN:
-                {
-                        if(event.key.keysym.scancode == SDL_SCANCODE_ESCAPE)
-                                quit = 1;
-                        handleColorsWithKeyboard(&event) ;
-                        handleToolsWithKeyboard(&event) ;
-                }
-                break ;
-                case SDL_QUIT :
-                        quit = 1 ;
-                break ;
-                case SDL_FINGERUP :
-                case SDL_MOUSEBUTTONUP:
-                                if (event.button.button == SDL_BUTTON_LEFT || event.type == SDL_FINGERUP )
-                                        leftMouseButtonDown = 0;
-                break;
-                case SDL_FINGERDOWN :
-                case SDL_MOUSEBUTTONDOWN :
-               {
-                        if(event.button.button == SDL_BUTTON_LEFT || event.type==SDL_FINGERDOWN)
-                        {
-                                leftMouseButtonDown = 1;
-
-                                handleTools(&event) ;
-                                handleColors(&event) ;
-                                if(currentTool == TOOL_CLEAR)
-                                {
-                                        clearCanvas() ;
-                                        currentTool = TOOL_PENCIL ;
-                                        tool_state[TOOL_CLEAR] = 0 ;
-                                        tool_state[currentTool] = 1 ;
-                                }
-                                if(currentTool == TOOL_PNG)
-                                {
-                                        writeImage() ;
-                                        currentTool = TOOL_PENCIL ;
-                                        tool_state[TOOL_PNG] = 0 ;
-                                        tool_state[currentTool] = 1 ;
-                                }
-                                if(currentTool == TOOL_BUCKET && event.motion.x-offset_width > 0&& event.motion.y < screenheight-offset_height)
-                                {
-                                        int r1 , g1  ,b1 , r2 , g2 , b2;
-                                        r1 = avail_Colors[currentColor].r;
-                                        g1 = avail_Colors[currentColor].g;
-                                        b1 = avail_Colors[currentColor].b;
-                                        getPixel(xnew  , ynew , &r2 , &g2 ,&b2);
-                                        do_flood_fill(xnew , ynew , r1,g1,b1 , r2 , g2 , b2);
-                                }
-                                if(event.button.state == SDL_PRESSED && event.button.clicks == 1&&currentTool==TOOL_ERASER)
-                                                        erase(xnew , ynew) ;
-                        }
-                }
-                break ;
-
-                case SDL_FINGERMOTION :
-                case SDL_MOUSEMOTION :
-                {
-                        if(event.type ==SDL_MOUSEMOTION)
-                        {
-                                xnew = event.motion.x-offset_width ;
-                                ynew = event.motion.y ;
-                        }
-                        else
-                        {
-                                xnew = event.tfinger.x ;
-                                ynew = event.tfinger.y ;
-                        }
-                        if (leftMouseButtonDown)
-                        {
-                                if(currentTool == TOOL_PENCIL || currentTool == TOOL_BRUSH || currentTool == TOOL_BRUSH_THICK)
-                                {
-                                        SDL_ShowCursor(SDL_DISABLE) ;
-                                        drawLine(xold , yold , xnew ,ynew) ;
-                                }
-                                if(currentTool == TOOL_ERASER)
-                                {
-                                        erase(xnew , ynew) ;
-                                }
-                        }
-                        xold = xnew ;
-                        yold = ynew ;
-                }
-                break;
+            case SDL_QUIT :
+                    quit = 1 ;
+            break ;
+            case SDL_KEYDOWN:
+            {
+                onKeyDown(&event) ;
+            }
+            break ;
+            case SDL_FINGERUP : case SDL_MOUSEBUTTONUP:
+            {
+                onMouseButtonUp(&event) ;
+            }
+            break;
+            case SDL_FINGERDOWN : case SDL_MOUSEBUTTONDOWN :
+            {
+                onMouseButtonDown(&event) ;
+            }
+            break ;
+            case SDL_FINGERMOTION : case SDL_MOUSEMOTION :
+            {
+                onMouseMotion(&event) ;
+            }
+            break;
         }
 }
 void renderBackgroundImage()
@@ -1013,7 +1192,6 @@ void putToolIconsOnCanvas()
 void render()
 {
         SDL_UpdateTexture(Canvas, NULL, pixels, (screenwidth-offset_width) * sizeof(Uint32));
-
         SDL_RenderClear(renderer);
         renderBackgroundImage() ;
         renderColors() ;
@@ -1058,3 +1236,4 @@ int main(int argc, char ** argv)
         clean() ;
         return 0;
 }
+
